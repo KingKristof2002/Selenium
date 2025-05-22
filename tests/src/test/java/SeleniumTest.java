@@ -37,57 +37,43 @@ public class SeleniumTest {
     }
 
     private void doLogin() {
+        System.out.println("Navigating to base domain to set cookies...");
+        driver.get("https://www.transfermarkt.us");
+
+        // Set a consent cookie to skip popup
+        org.openqa.selenium.Cookie cookie = new org.openqa.selenium.Cookie.Builder(
+                "OptanonConsent",
+                "isIABGlobal=false&datestamp=2024-06-01T12:00:00.000Z&version=6.16.0&hosts=&consentId=some_id&interactionCount=1&landingPath=NotLandingPage")
+            .domain(".transfermarkt.us")
+            .path("/")
+            .isHttpOnly(true)
+            .build();
+
+        driver.manage().addCookie(cookie);
+        System.out.println("Consent cookie set manually.");
+
+        // Now navigate to login
         System.out.println("Navigating to the login page...");
         driver.get("https://www.transfermarkt.us/profil/login");
 
-        // Accept cookies if the popup is shown
         try {
-            System.out.println("Checking for cookie consent popup...");
-            WebElement cookieButton = wait.until(ExpectedConditions.elementToBeClickable(By.id("onetrust-accept-btn-handler")));
-            cookieButton.click();
-            System.out.println("Cookie consent accepted.");
-        } catch (TimeoutException e) {
-            System.out.println("No cookie consent popup found.");
-        }
-
-        try {
-            // Enter username
             System.out.println("Locating username field...");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("LoginForm[username]"))).sendKeys("Kristof");
             System.out.println("Username entered.");
 
-            // Enter password
             System.out.println("Locating password field...");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("LoginForm[password]"))).sendKeys("SeleniumTestPassword8!");
             System.out.println("Password entered.");
 
-            // Check and handle iframe if blocking
-            try {
-                wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(By.cssSelector("iframe[src*='privacy-mgmt']")));
-                System.out.println("Iframe detected, switching to iframe...");
-                WebElement consentButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[title='Accept']")));
-                consentButton.click();
-                System.out.println("Iframe consent accepted.");
-                driver.switchTo().defaultContent();
-            } catch (TimeoutException iframeException) {
-                System.out.println("No blocking iframe found.");
-                driver.switchTo().defaultContent();
-            }
-
-            // Use JavaScript to click the login button if standard click fails
-            System.out.println("Locating login button...");
+            // Try to click the login button
             WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("input[type='submit']")));
             try {
                 loginBtn.click();
-                System.out.println("Login button clicked.");
-            } catch (Exception clickException) {
-                System.out.println("Standard click failed, attempting JavaScript click...");
-                ((RemoteWebDriver) driver).executeScript("arguments[0].click();", loginBtn);
-                System.out.println("Login button clicked via JavaScript.");
+            } catch (Exception e) {
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", loginBtn);
             }
 
             System.out.println("Login successful.");
-
         } catch (Exception e) {
             System.out.println("An error occurred during the login process: " + e.getMessage());
             throw e;
@@ -165,7 +151,7 @@ public class SeleniumTest {
             assertTrue("Logout was unsuccessful: 'Log in' button not visible.", isLoginButtonPresent);
             System.out.println("Successfully logged out.");
 
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             System.out.println("Logout test failed: " + e.getMessage());
             throw e;
         }
