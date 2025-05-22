@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  ubuntu:
+    build: .
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./tests:/home/selenium/tests
+    links:
+      - selenium
+      - novnc
+
+  novnc:
+    image: javanile/novnc
+    environment:
+      - REMOTE_HOST=localhost
+      - REMOTE_PORT=5900
+    ports:
+      - "8081:8081"
+    links:
+      - selenium
+
+  selenium:
+    image: selenium/standalone-chrome-debug:3.11.0-californium
+    environment:
+      - VNC_NO_PASSWORD=1
+      - SCREEN_WIDTH=1800
+      - SCREEN_HEIGHT=960
+    ports:
+      - "4444:4444"
+      - "5900:5900"
